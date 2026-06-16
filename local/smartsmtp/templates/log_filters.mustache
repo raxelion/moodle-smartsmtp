@@ -1,0 +1,33 @@
+{{!
+  @template local_smartsmtp/log_filters
+  Filtros del visor de logs.
+}}
+<form method="get" class="mb-3 d-flex gap-2 align-items-end flex-wrap">
+  <div class="form-group mr-2 mb-0">
+    <label class="small text-muted d-block" for="filter_account">
+      {{#str}} account, local_smartsmtp {{/str}}
+    </label>
+    <select name="account_id" id="filter_account" class="form-control form-control-sm custom-select">
+      <option value="">— {{#str}} all_accounts, local_smartsmtp {{/str}} —</option>
+      {{#accounts}}
+      <option value="{{id}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+      {{/accounts}}
+    </select>
+  </div>
+  <div class="form-group mr-2 mb-0">
+    <label class="small text-muted d-block" for="filter_status">
+      {{#str}} status, local_smartsmtp {{/str}}
+    </label>
+    <select name="status" id="filter_status" class="form-control form-control-sm custom-select">
+      <option value="">— {{#str}} all_statuses, local_smartsmtp {{/str}} —</option>
+      {{#statuses}}
+      <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+      {{/statuses}}
+    </select>
+  </div>
+  <div class="mb-0">
+    <button type="submit" class="btn btn-sm btn-secondary">
+      {{#str}} filter {{/str}}
+    </button>
+  </div>
+</form>

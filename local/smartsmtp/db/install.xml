@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/smartsmtp/db" VERSION="20260503" COMMENT="SmartSMTP Manager tables"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+
+    <!-- ================================================================
+         smartsmtp_accounts — Buzones SMTP configurados
+         ================================================================ -->
+    <TABLE NAME="smartsmtp_accounts" COMMENT="Buzones SMTP registrados">
+      <FIELDS>
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"  COMMENT="ID del buzón"/>
+        <FIELD NAME="name"        TYPE="char" LENGTH="100" NOTNULL="true"  SEQUENCE="false" COMMENT="Nombre descriptivo del buzón"/>
+        <FIELD NAME="host"        TYPE="char" LENGTH="255" NOTNULL="true"  SEQUENCE="false" COMMENT="Servidor SMTP"/>
+        <FIELD NAME="port"        TYPE="int"  LENGTH="5"   NOTNULL="true"  SEQUENCE="false" DEFAULT="587" COMMENT="Puerto SMTP"/>
+        <FIELD NAME="username"    TYPE="char" LENGTH="255" NOTNULL="true"  SEQUENCE="false" COMMENT="Usuario SMTP"/>
+        <FIELD NAME="password"    TYPE="char" LENGTH="255" NOTNULL="true"  SEQUENCE="false" COMMENT="Contraseña encriptada con core\encryption"/>
+        <FIELD NAME="security"    TYPE="char" LENGTH="10"  NOTNULL="true"  SEQUENCE="false" DEFAULT="tls" COMMENT="Tipo de seguridad: tls, ssl o vacío"/>
+        <FIELD NAME="daily_limit" TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" DEFAULT="500" COMMENT="Límite diarios, 0 = ilimitado"/>
+        <FIELD NAME="is_default"  TYPE="int"  LENGTH="1"   NOTNULL="true"  SEQUENCE="false" DEFAULT="0"   COMMENT="1 = buzón predeterminado"/>
+        <FIELD NAME="enabled"     TYPE="int"  LENGTH="1"   NOTNULL="true"  SEQUENCE="false" DEFAULT="1"   COMMENT="1 = activo"/>
+        <FIELD NAME="notes"       TYPE="text"              NOTNULL="false" SEQUENCE="false" COMMENT="Notas internas opcionales"/>
+        <FIELD NAME="noreply_email" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Correo noreply para este buzón. Vacío = usa username del buzón"/>
+        <FIELD NAME="noreply_name"  TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Nombre visible en el From de correos de este buzón"/>
+        <FIELD NAME="timecreated" TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" DEFAULT="0"   COMMENT="Timestamp de creación"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <!-- ================================================================
+         smartsmtp_rules — Reglas de enrutamiento
+         ================================================================
+         Cada regla mapea un (component [+ name]) a un buzón SMTP.
+
+         EVALUACIÓN DE REGLAS (orden de precedencia, más específica primero):
+           1. component + name   (solo premium con name_granularity)
+           2. component          (free y premium)
+           3. Buzón default      (fallback siempre disponible)
+
+         CAMPOS:
+           notification_type — campo heredado, mantener para compatibilidad.
+                               En reglas nuevas = igual a component.
+           component         — plugin Moodle que genera el correo.
+                               NULL = aplica a cualquier componente.
+           name              — granularidad fina dentro del componente.
+                               NULL = aplica a todo el componente.
+                               Solo evalúa si licencia tiene name_granularity.
+           roundrobin        — 1 = rotar entre buzones con esta regla.
+                               Solo activo si licencia tiene roundrobin.
+           roundrobin_index  — posición actual en la rotación (0-based).
+                               Se actualiza atómicamente al seleccionar buzón.
+         ================================================================ -->
+    <TABLE NAME="smartsmtp_rules" COMMENT="Reglas de enrutamiento: componente Moodle a buzón SMTP">
+      <FIELDS>
+        <FIELD NAME="id"                TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="true"  COMMENT="ID de la regla"/>
+        <FIELD NAME="notification_type" TYPE="char" LENGTH="100" NOTNULL="true"  SEQUENCE="false" COMMENT="Tipo de notificación (legacy, = component en reglas nuevas)"/>
+        <FIELD NAME="component"         TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Plugin Moodle origen: mod_forum, moodle, mod_assign…"/>
+        <FIELD NAME="name"              TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Nombre de notificación (granularidad premium), ej: posts, due_date"/>
+        <FIELD NAME="account_id"        TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" COMMENT="ID del buzón asignado"/>
+        <FIELD NAME="priority"          TYPE="int"  LENGTH="3"   NOTNULL="true"  SEQUENCE="false" DEFAULT="0"  COMMENT="Prioridad, mayor número = mayor prioridad"/>
+        <FIELD NAME="roundrobin"        TYPE="int"  LENGTH="1"   NOTNULL="true"  SEQUENCE="false" DEFAULT="0"  COMMENT="1 = participar en round-robin (premium)"/>
+        <FIELD NAME="roundrobin_index"  TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" DEFAULT="0"  COMMENT="Índice actual en rotación round-robin"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary"    TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_account" TYPE="foreign" FIELDS="account_id" REFTABLE="smartsmtp_accounts" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_component"      UNIQUE="false" FIELDS="component"/>
+        <INDEX NAME="idx_component_name" UNIQUE="false" FIELDS="component, name"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- ================================================================
+         smartsmtp_logs — Registro de envíos
+         ================================================================ -->
+    <TABLE NAME="smartsmtp_logs" COMMENT="Registro de correos enviados por cada buzón">
+      <FIELDS>
+        <FIELD NAME="id"         TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="true"  COMMENT="ID del log"/>
+        <FIELD NAME="account_id" TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" COMMENT="ID del buzón usado"/>
+        <FIELD NAME="recipient"  TYPE="char" LENGTH="255" NOTNULL="true"  SEQUENCE="false" COMMENT="Correo del destinatario"/>
+        <FIELD NAME="subject"    TYPE="char" LENGTH="255" NOTNULL="true"  SEQUENCE="false" COMMENT="Asunto del correo"/>
+        <FIELD NAME="component"  TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Componente Moodle que generó el correo"/>
+        <FIELD NAME="status"     TYPE="char" LENGTH="20"  NOTNULL="true"  SEQUENCE="false" COMMENT="sent, failed, fallback"/>
+        <FIELD NAME="error_msg"  TYPE="text"              NOTNULL="false" SEQUENCE="false" COMMENT="Mensaje de error si falló"/>
+        <FIELD NAME="timesent"   TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false" DEFAULT="0" COMMENT="Timestamp del envío"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_timesent"   UNIQUE="false" FIELDS="timesent"/>
+        <INDEX NAME="idx_account_id" UNIQUE="false" FIELDS="account_id"/>
+        <INDEX NAME="idx_status"     UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+
+
+    <TABLE NAME="smartsmtp_daily_counts" COMMENT="Daily email send counters per SMTP account">
+      <FIELDS>
+        <FIELD NAME="id"         TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="account_id" TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="day"        TYPE="char" LENGTH="8"  NOTNULL="true"  SEQUENCE="false" COMMENT="Date as YYYYMMDD"/>
+        <FIELD NAME="count"      TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_account_day" UNIQUE="true" FIELDS="account_id, day"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>

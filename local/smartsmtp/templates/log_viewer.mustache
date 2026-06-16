@@ -1,0 +1,48 @@
+{{!
+  @template local_smartsmtp/log_viewer
+  Visor de logs de envío.
+  Variables:
+    logs     - array de registros de log
+    accounts - array de cuentas para filtro
+    statuses - array de estados para filtro
+    paging   - HTML de paginación
+}}
+<div class="local-smartsmtp-logs">
+
+  {{#logs}}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover generaltable">
+      <thead>
+        <tr>
+          <th>{{#str}} date {{/str}}</th>
+          <th>{{#str}} account, local_smartsmtp {{/str}}</th>
+          <th>{{#str}} recipient, local_smartsmtp {{/str}}</th>
+          <th>{{#str}} subject, local_smartsmtp {{/str}}</th>
+          <th>{{#str}} status, local_smartsmtp {{/str}}</th>
+          <th>{{#str}} error, local_smartsmtp {{/str}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#logs}}
+        <tr>
+          <td class="text-nowrap">{{date}}</td>
+          <td>{{account_name}}</td>
+          <td>{{recipient}}</td>
+          <td>{{subject}}</td>
+          <td>{{{status_badge}}}</td>
+          <td class="text-muted small">{{error_msg}}</td>
+        </tr>
+        {{/logs}}
+      </tbody>
+    </table>
+  </div>
+  {{/logs}}
+
+  {{^logs}}
+  <div class="alert alert-info">
+    {{#str}} no_logs_yet, local_smartsmtp {{/str}}
+  </div>
+  {{/logs}}
+
+  {{{paging}}}
+</div>

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (2026-04-01)
+## 1.0.0 (2026-06-16)
 - Initial release
 - Multiple SMTP account management
 - Notification type rules
@@ -8,4 +8,4 @@
 - Automatic fallback
 - Premium license system
 - GDPR compliant (privacy provider)
-- Compatible with Moodle 4.5 - 5.0
+- Compatible with Moodle 4.5 - 5.2

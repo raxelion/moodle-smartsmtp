@@ -8,4 +8,4 @@
 - Automatic fallback
 - Premium license system
 - GDPR compliant (privacy provider)
-- Compatible with Moodle 4.3 - 5.0
+- Compatible with Moodle 4.5 - 5.0
